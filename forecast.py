@@ -1,10 +1,8 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-
 from pathlib import Path
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
-
 
 FORECAST_PATH = Path("data/data.xlsx")
 
@@ -27,177 +25,184 @@ def load_forecast_data():
 
     return df
 
-df = load_forecast_data()
 
-# =====================================
-# SIDEBAR
-# =====================================
+def show_forecast():
 
-st.sidebar.header("Filter")
+    df = load_forecast_data()
 
-items = sorted(df["Description"].dropna().unique())
+    # =====================================
+    # SIDEBAR
+    # =====================================
 
-item = st.sidebar.selectbox(
-    "Pilih Item",
-    items
-)
+    st.sidebar.header("Filter")
 
-# =====================================
-# FILTER DATA
-# =====================================
+    items = sorted(df["Description"].dropna().unique())
 
-data_item = df[df["Description"] == item].copy()
-
-if data_item.empty:
-    st.error("Item tidak ditemukan.")
-    st.stop()
-
-# =====================================
-# KPI
-# =====================================
-
-harga = data_item["Direct Unit Cost"].astype(float)
-
-harga_awal = harga.iloc[0]
-harga_terakhir = harga.iloc[-1]
-harga_rata = harga.mean()
-
-jumlah = len(harga)
-
-if harga_terakhir > harga_awal:
-    trend = "📈 NAIK"
-elif harga_terakhir < harga_awal:
-    trend = "📉 TURUN"
-else:
-    trend = "➡️ STABIL"
-
-c1, c2, c3, c4 = st.columns(4)
-
-c1.metric("Harga Terakhir", f"Rp {harga_terakhir:,.0f}")
-c2.metric("Harga Rata-rata", f"Rp {harga_rata:,.0f}")
-c3.metric("Jumlah Transaksi", jumlah)
-c4.metric("Trend", trend)
-
-st.divider()
-
-# =====================================
-# FORECAST
-# =====================================
-
-st.subheader("🔮 Forecast")
-
-forecast = None
-
-if len(harga) >= 5:
-
-    model = ExponentialSmoothing(
-        harga,
-        trend="add",
-        seasonal=None
+    item = st.sidebar.selectbox(
+        "Pilih Item",
+        items
     )
 
-    fit = model.fit()
+    # =====================================
+    # FILTER DATA
+    # =====================================
 
-    forecast = fit.forecast(2)
+    data_item = df[df["Description"] == item].copy()
 
-    f1, f2 = st.columns(2)
+    if data_item.empty:
+        st.error("Item tidak ditemukan.")
+        return
 
-    f1.metric(
-        "Forecast Periode 1",
-        f"Rp {forecast.iloc[0]:,.0f}"
-    )
+    # =====================================
+    # KPI
+    # =====================================
 
-    f2.metric(
-        "Forecast Periode 2",
-        f"Rp {forecast.iloc[1]:,.0f}"
-    )
+    harga = data_item["Direct Unit Cost"].astype(float)
 
-else:
+    harga_awal = harga.iloc[0]
+    harga_terakhir = harga.iloc[-1]
+    harga_rata = harga.mean()
 
-    st.warning("Data belum cukup untuk forecast.")
+    jumlah = len(harga)
 
-st.divider()
+    if harga_terakhir > harga_awal:
+        trend = "📈 NAIK"
+    elif harga_terakhir < harga_awal:
+        trend = "📉 TURUN"
+    else:
+        trend = "➡️ STABIL"
 
-# =====================================
-# GRAFIK
-# =====================================
+    c1, c2, c3, c4 = st.columns(4)
 
-st.subheader(f"📈 Trend Harga - {item}")
+    c1.metric("Harga Terakhir", f"Rp {harga_terakhir:,.0f}")
+    c2.metric("Harga Rata-rata", f"Rp {harga_rata:,.0f}")
+    c3.metric("Jumlah Transaksi", jumlah)
+    c4.metric("Trend", trend)
 
-fig, ax = plt.subplots(figsize=(12,5))
+    st.divider()
 
-ax.plot(
-    data_item["Order Date"],
-    harga,
-    marker="o",
-    linewidth=2,
-    label="Harga Aktual"
-)
+    # =====================================
+    # FORECAST
+    # =====================================
 
-if forecast is not None:
+    st.subheader("🔮 Forecast")
 
-    tanggal_forecast = pd.date_range(
-        start=data_item["Order Date"].max(),
-        periods=3,
-        freq="MS"
-    )[1:]
+    forecast = None
 
-    ax.plot(
-        tanggal_forecast,
-        forecast,
-        linestyle="--",
-        marker="o",
-        linewidth=2,
-        label="Forecast"
-    )
+    if len(harga) >= 5:
 
-ax.set_xlabel("Tanggal")
-ax.set_ylabel("Harga")
-ax.grid(True)
-ax.legend()
+        model = ExponentialSmoothing(
+            harga,
+            trend="add",
+            seasonal=None
+        )
 
-plt.xticks(rotation=45)
+        fit = model.fit()
 
-st.pyplot(fig)
+        forecast = fit.forecast(2)
 
-# =====================================
-# REKOMENDASI
-# =====================================
+        f1, f2 = st.columns(2)
 
-if forecast is not None:
+        f1.metric(
+            "Forecast Periode 1",
+            f"Rp {forecast.iloc[0]:,.0f}"
+        )
 
-    st.subheader("💡 Rekomendasi")
-
-    if forecast.iloc[1] > harga.iloc[-1]:
-
-        st.warning(
-            "Harga diperkirakan naik.\n\n"
-            "Disarankan mempertimbangkan pembelian lebih awal."
+        f2.metric(
+            "Forecast Periode 2",
+            f"Rp {forecast.iloc[1]:,.0f}"
         )
 
     else:
 
-        st.success(
-            "Harga diperkirakan stabil atau turun.\n\n"
-            "Pembelian dapat dijadwalkan sesuai kebutuhan."
+        st.warning("Data belum cukup untuk forecast.")
+
+    st.divider()
+
+    # =====================================
+    # GRAFIK
+    # =====================================
+
+    st.subheader(f"📈 Trend Harga - {item}")
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+
+    ax.plot(
+        data_item["Order Date"],
+        harga,
+        marker="o",
+        linewidth=2,
+        label="Harga Aktual"
+    )
+
+    if forecast is not None:
+
+        tanggal_forecast = pd.date_range(
+            start=data_item["Order Date"].max(),
+            periods=3,
+            freq="MS"
+        )[1:]
+
+        ax.plot(
+            tanggal_forecast,
+            forecast,
+            linestyle="--",
+            marker="o",
+            linewidth=2,
+            label="Forecast"
         )
 
-st.divider()
+    ax.set_xlabel("Tanggal")
+    ax.set_ylabel("Harga")
+    ax.grid(True)
+    ax.legend()
 
-# =====================================
-# DETAIL DATA
-# =====================================
+    plt.xticks(rotation=45)
 
-st.subheader("📋 Detail Transaksi")
+    st.pyplot(fig)
 
-kolom = [
-    "Order Date",
-    "Buy-from Vendor Name",
-    "Quantity",
-    "Direct Unit Cost"
-]
+    # =====================================
+    # REKOMENDASI
+    # =====================================
 
-st.dataframe(
-    data_item[kolom],
-    use_container_width=True
-)
+    if forecast is not None:
+
+        st.subheader("💡 Rekomendasi")
+
+        if forecast.iloc[1] > harga.iloc[-1]:
+
+            st.warning(
+                "Harga diperkirakan naik.\n\n"
+                "Disarankan mempertimbangkan pembelian lebih awal."
+            )
+
+        else:
+
+            st.success(
+                "Harga diperkirakan stabil atau turun.\n\n"
+                "Pembelian dapat dijadwalkan sesuai kebutuhan."
+            )
+
+    st.divider()
+
+    # =====================================
+    # DETAIL DATA
+    # =====================================
+
+    st.subheader("📋 Detail Transaksi")
+
+    kolom = [
+        "Order Date",
+        "Buy-from Vendor Name",
+        "Quantity",
+        "Direct Unit Cost"
+    ]
+
+    st.dataframe(
+        data_item[kolom],
+        use_container_width=True
+    )
+
+
+if __name__ == "__main__":
+    show_forecast()
