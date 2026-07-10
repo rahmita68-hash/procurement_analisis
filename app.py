@@ -961,7 +961,7 @@ elif menu == "Supplier":
         use_container_width=True,
         hide_index=True
     )
-
+    
 elif menu == "Cost Reduction":
 
     st.title("💰 Cost Reduction")
@@ -980,6 +980,7 @@ elif menu == "Cost Reduction":
         )
 
 
+        # hapus kolom kosong Excel
         cr = cr.loc[
             :,
             ~cr.columns.astype(str)
@@ -1011,100 +1012,120 @@ elif menu == "Cost Reduction":
 
 
     cr["Ket"] = (
-    cr["Ket"]
-    .astype(str)
-    .str.replace("🟢", "", regex=False)
-    .str.replace("🟡", "", regex=False)
-    .str.replace("🔴", "", regex=False)
-    .str.replace("\xa0", "", regex=False)
-    .str.strip()
-    .str.title()
+        cr["Ket"]
+        .astype(str)
+        .str.replace("🟢", "", regex=False)
+        .str.replace("🟡", "", regex=False)
+        .str.replace("🔴", "", regex=False)
+        .str.replace("\xa0", "", regex=False)
+        .str.strip()
+        .str.title()
     )
 
 
-# PCR langsung dibaca sebagai angka dari Excel
-cr["PCR_VALUE"] = pd.to_numeric(
-    cr["PCR"],
-    errors="coerce"
-)
+    cr["PCR_VALUE"] = pd.to_numeric(
+        cr["PCR"],
+        errors="coerce"
+    )
 
-# Kolom Mei dan Juni juga dipastikan angka
-cr["Mei"] = pd.to_numeric(
-    cr["Mei"],
-    errors="coerce"
-)
 
-cr["Juni"] = pd.to_numeric(
-    cr["Juni"],
-    errors="coerce"
-)
+    cr["Mei"] = pd.to_numeric(
+        cr["Mei"],
+        errors="coerce"
+    )
+
+
+    cr["Juni"] = pd.to_numeric(
+        cr["Juni"],
+        errors="coerce"
+    )
+
+
+    cr["PCR_VALUE"] = (
+        cr["PCR_VALUE"]
+        .fillna(0)
+    )
+
 
     # ==========================
     # KPI
     # ==========================
 
 
-# Pastikan PCR_VALUE berupa angka
+    total_saving = (
+        cr.loc[
+            cr["Ket"].str.contains(
+                "Saving",
+                na=False
+            ),
+            "PCR_VALUE"
+        ]
+        .sum()
+    )
 
 
-total_saving = cr.loc[
-    cr["Ket"].str.contains("Saving", na=False),
-    "PCR_VALUE"
-].sum()
+    total_saving_item = (
+        cr[
+            cr["Ket"].str.contains(
+                "Saving",
+                na=False
+            )
+        ]
+        .shape[0]
+    )
 
 
-total_saving_item = cr.loc[
-    cr["Ket"].str.contains("Saving", na=False)
-].shape[0]
+    total_increase = (
+        cr[
+            cr["Ket"].str.contains(
+                "Cost Increase",
+                na=False
+            )
+        ]
+        .shape[0]
+    )
 
 
-total_increase = cr.loc[
-    cr["Ket"].str.contains("Cost Increase", na=False)
-].shape[0]
+    total_change = (
+        cr[
+            cr["Ket"].str.contains(
+                "No Change",
+                na=False
+            )
+        ]
+        .shape[0]
+    )
 
 
-total_change = cr.loc[
-    cr["Ket"].str.contains("No Change", na=False)
-].shape[0]
 
-cr["Ket"] = cr["Ket"].replace("Nan", "")
-
-c1, c2, c3, c4 = st.columns(4)
-
-c1.metric(
-    "💰 Total Saving",
-    f"Rp {total_saving:,.0f}"
-)
-
-c2.metric(
-    "🟢 Item Saving",
-    total_saving_item
-)
-
-c3.metric(
-    "🔴 Cost Increase",
-    total_increase
-)
-
-c4.metric(
-    "🟡 No Change",
-    total_change
-)
-
-cr["PCR_VALUE"] = pd.to_numeric(
-    cr["PCR_VALUE"],
-    errors="coerce"
-).fillna(0)
-
-# Bersihkan kolom Ket
-cr["Ket"] = (
-    cr["Ket"]
-    .astype(str)
-    .str.strip()
-)
+    c1, c2, c3, c4 = st.columns(4)
 
 
-st.divider()
+    c1.metric(
+        "💰 Total Saving",
+        f"Rp {total_saving:,.0f}"
+    )
+
+
+    c2.metric(
+        "🟢 Item Saving",
+        total_saving_item
+    )
+
+
+    c3.metric(
+        "🔴 Cost Increase",
+        total_increase
+    )
+
+
+    c4.metric(
+        "🟡 No Change",
+        total_change
+    )
+
+
+    st.divider()
 
 
 
@@ -1113,20 +1134,20 @@ st.divider()
     # ==========================
 
 
-status = (
+    status = (
         cr["Ket"]
         .value_counts()
         .reset_index()
     )
 
 
-status.columns = [
+    status.columns = [
         "Status",
         "Jumlah"
     ]
 
 
-fig = px.pie(
+    fig = px.pie(
         status,
         names="Status",
         values="Jumlah",
@@ -1134,7 +1155,7 @@ fig = px.pie(
     )
 
 
-st.plotly_chart(
+    st.plotly_chart(
         fig,
         use_container_width=True
     )
@@ -1146,55 +1167,72 @@ st.plotly_chart(
     # ==========================
 
 
-st.subheader(
+    st.subheader(
         "📋 Detail Cost Reduction"
     )
 
 
-cr_display = cr.copy()
+    cr_display = cr.copy()
 
-# Format Rupiah
-for col in ["Mei", "Juni", "PCR_VALUE"]:
 
-    cr_display[col] = (
-        cr_display[col]
-        .round(0)
-        .apply(
-            lambda x: f"Rp {x:,.0f}"
-            if pd.notnull(x)
-            else ""
+    for col in [
+        "Mei",
+        "Juni",
+        "PCR_VALUE"
+    ]:
+
+        cr_display[col] = (
+            cr_display[col]
+            .round(0)
+            .apply(
+                lambda x:
+                f"Rp {x:,.0f}"
+                if pd.notnull(x)
+                else ""
+            )
         )
+
+
+    cr_display["PCR"] = (
+        cr_display["PCR_VALUE"]
     )
 
-# Ganti nama kolom PCR_VALUE menjadi PCR
-cr_display["PCR"] = cr_display["PCR_VALUE"]
 
-# Hapus kolom PCR lama dan PCR_VALUE
-cr_display = cr_display.drop(columns=["PCR_VALUE"])
+    cr_display = cr_display.drop(
+        columns=[
+            "PCR_VALUE"
+        ]
+    )
 
-# Persentase
-cr_display["%"] = (
-    cr["%"]
-    .fillna(0)
-    .mul(100)
-    .round(0)
-    .astype(int)
-    .astype(str)
-    + "%"
-)
 
-# Keterangan
-cr_display["Ket"] = (
-    cr_display["Ket"]
-    .replace({
-        "Saving": "🟢 Saving",
-        "No Change": "🟡 No Change",
-        "Cost Increase": "🔴 Cost Increase"
-    })
-)
+    cr_display["%"] = (
+        cr["%"]
+        .fillna(0)
+        .mul(100)
+        .round(0)
+        .astype(int)
+        .astype(str)
+        + "%"
+    )
 
-st.dataframe(
-    cr_display,
-    use_container_width=True,
-    hide_index=True
-)
+
+    cr_display["Ket"] = (
+        cr_display["Ket"]
+        .replace({
+            "Saving":
+            "🟢 Saving",
+
+            "No Change":
+            "🟡 No Change",
+
+            "Cost Increase":
+            "🔴 Cost Increase"
+        })
+    )
+
+
+    st.dataframe(
+        cr_display,
+        use_container_width=True,
+        hide_index=True
+    )

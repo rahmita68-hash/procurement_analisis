@@ -34,14 +34,15 @@ def show_forecast():
     # FILTER
     # ============================
 
-    st.sidebar.header("Filter")
+    st.subheader("📦 Filter Forecast")
 
     items = sorted(df["Description"].dropna().unique())
 
-    item = st.sidebar.selectbox(
+    item = st.selectbox(
         "Pilih Item",
         items
     )
+    
 
     # ============================
     # FILTER DATA
