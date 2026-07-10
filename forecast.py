@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+
 from pathlib import Path
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
@@ -9,30 +10,29 @@ FORECAST_PATH = Path("data/data.xlsx")
 
 @st.cache_data
 def load_forecast_data():
-
     df = pd.read_excel(
         FORECAST_PATH,
         sheet_name="DAILY REPORT"
     )
 
-    df["Order Date"] = pd.to_datetime(
-        df["Order Date"]
-    )
+    df["Order Date"] = pd.to_datetime(df["Order Date"])
 
-    df = df.sort_values(
-        "Order Date"
-    )
+    df = df.sort_values("Order Date")
 
     return df
 
+
+# ==================================================
+# FUNGSI YANG DIPANGGIL DARI APP.PY
+# ==================================================
 
 def show_forecast():
 
     df = load_forecast_data()
 
-    # =====================================
-    # SIDEBAR
-    # =====================================
+    # ============================
+    # FILTER
+    # ============================
 
     st.sidebar.header("Filter")
 
@@ -43,19 +43,15 @@ def show_forecast():
         items
     )
 
-    # =====================================
+    # ============================
     # FILTER DATA
-    # =====================================
+    # ============================
 
     data_item = df[df["Description"] == item].copy()
 
     if data_item.empty:
         st.error("Item tidak ditemukan.")
         return
-
-    # =====================================
-    # KPI
-    # =====================================
 
     harga = data_item["Direct Unit Cost"].astype(float)
 
@@ -72,20 +68,47 @@ def show_forecast():
     else:
         trend = "➡️ STABIL"
 
+    # ============================
+    # KPI
+    # ============================
+
     c1, c2, c3, c4 = st.columns(4)
 
-    c1.metric("Harga Terakhir", f"Rp {harga_terakhir:,.0f}")
-    c2.metric("Harga Rata-rata", f"Rp {harga_rata:,.0f}")
-    c3.metric("Jumlah Transaksi", jumlah)
-    c4.metric("Trend", trend)
+    c1.metric(
+        "Harga Terakhir",
+        f"Rp {harga_terakhir:,.0f}"
+    )
+
+    c2.metric(
+        "Harga Rata-rata",
+        f"Rp {harga_rata:,.0f}"
+    )
+
+    c3.metric(
+        "Jumlah Transaksi",
+        jumlah
+    )
+
+    c4.metric(
+        "Trend",
+        trend
+    )
 
     st.divider()
 
-    # =====================================
+    # ============================
     # FORECAST
-    # =====================================
+    # ============================
 
     st.subheader("🔮 Forecast")
+
+    st.info("""
+⚠️ **Informasi Forecast**
+
+Forecast dihitung menggunakan metode **Exponential Smoothing** berdasarkan data historis transaksi.
+
+Nilai forecast merupakan **estimasi** dan **bukan merupakan harga pasti**. Gunakan hasil forecast sebagai referensi dalam proses perencanaan pembelian.
+""")
 
     forecast = None
 
@@ -104,12 +127,12 @@ def show_forecast():
         f1, f2 = st.columns(2)
 
         f1.metric(
-            "Forecast Periode 1",
+            "Forecast Juli 2026",
             f"Rp {forecast.iloc[0]:,.0f}"
         )
 
         f2.metric(
-            "Forecast Periode 2",
+            "Forecast Agustus 2026",
             f"Rp {forecast.iloc[1]:,.0f}"
         )
 
@@ -119,9 +142,9 @@ def show_forecast():
 
     st.divider()
 
-    # =====================================
+    # ============================
     # GRAFIK
-    # =====================================
+    # ============================
 
     st.subheader(f"📈 Trend Harga - {item}")
 
@@ -161,9 +184,9 @@ def show_forecast():
 
     st.pyplot(fig)
 
-    # =====================================
+    # ============================
     # REKOMENDASI
-    # =====================================
+    # ============================
 
     if forecast is not None:
 
@@ -185,9 +208,9 @@ def show_forecast():
 
     st.divider()
 
-    # =====================================
+    # ============================
     # DETAIL DATA
-    # =====================================
+    # ============================
 
     st.subheader("📋 Detail Transaksi")
 
@@ -202,7 +225,3 @@ def show_forecast():
         data_item[kolom],
         use_container_width=True
     )
-
-
-if __name__ == "__main__":
-    show_forecast()
